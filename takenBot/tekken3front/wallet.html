@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tekken3 - CROSSFIGOT.IO</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+
+        .content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 2; /* Ensure content is above canvas */
+        }
+
+        .button {
+            background-color: transparent;
+            color: white;
+            padding: 15px 30px;
+            border: 4px solid #007BFF;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            text-align: center;
+            outline: none;
+            position: relative;
+            z-index: 2;
+        }
+
+        .button:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+            transform: scale(1.05);
+        }
+
+        .button:active {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        #ton-connect {
+            background-color: transparent;
+            color: white;
+            border: 4px solid #007BFF;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        #orientationOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 24px;
+            text-align: center;
+        } 
+
+        #orientationMessage {
+            position: relative;
+        }
+
+        #orientationImage {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 30%;
+            height: auto;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Ensure canvas is below the content */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="backgroundCanvas"></canvas>
+
+    <div class="content" id="content">
+        <button id="ton-connect" class="button"></button>
+        <button id="startGameButton" class="button">Start Game</button>
+        <button id="connectMetaMaskButton" class="button">Connect MetaMask</button>
+    </div>
+
+    <div id="orientationOverlay">
+        <div id="orientationMessage">Please rotate your device</div>
+        <img id="orientationImage" src="/Images/Ecran.jpg" alt="Orientation Image">
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <script>
+        (function() {
+            const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+                manifestUrl: 'https://crossfigod.io/manifest.json',
+                buttonRootId: 'ton-connect'
+            });
+
+            async function connectToWallet() {
+                try {
+                    const connectedWallet = await tonConnectUI.connectWallet();
+                    // Do something with connectedWallet if needed
+
+                    let tg = window.Telegram.WebApp; 
+
+                    const url = 'https://crossfigod.io/datafromtonconnect';
+                    const data_to_tg = {
+                        "ton_connect_address": connectedWallet.account.address,
+                        "from_tg": tg.initDataUnsafe
+                    };
+                    
+                    const otherParam = {
+                        headers: {
+                            "content-type": "application/json; charset=UTF-8",
+                        },
+                        body: JSON.stringify(data_to_tg),
+                        method: "POST",
+                    };
+
+                    try {
+                        await fetch(url, otherParam);
+                    } catch (error) {
+                        console.error("Error fetching data:", error);
+                    }
+                } catch (error) {
+                    console.error("Error connecting to wallet:", error);
+                }
+            }
+
+            let previousOrientation = window.innerHeight > window.innerWidth;
+            let isOrentation = false; // Set this to true to check for orientation
+
+            function checkOrientation() {
+                try {
+                    const content = document.getElementById('content');
+                    const orientationPrompt = document.getElementById('orientationOverlay');
+                    const isPortrait = window.innerHeight > window.innerWidth;
+
+                    if (isOrentation) {
+                        if (isPortrait) {
+                            content.style.display = 'none';
+                            orientationPrompt.style.display = 'flex';
+                        } else {
+                            content.style.display = 'flex';
+                            orientationPrompt.style.display = 'none';
+                                // Redirect to the game URL only if orientation has changed to landscape
+                                window.location.href = 'teken3game/index.html';
+                        }
+                    }else{
+                        if (isPortrait !== previousOrientation) {
+                            // Orientation has changed, reload the page
+                            previousOrientation = isPortrait;
+                            window.location.reload();
+                        }
+                    }
+
+                } catch (error) {
+                    console.error("Error in checkOrientation function:", error);
+                }
+            }
+            
+            window.addEventListener('resize', checkOrientation);
+            window.addEventListener('load', checkOrientation);
+
+            document.getElementById('startGameButton').addEventListener('click', function () {
+                try {
+                    isOrentation = true;
+                    checkOrientation();
+                } catch (error) {
+                    console.error("Error navigating to start game URL:", error);
+                }
+            });
+
+            document.getElementById('connectMetaMaskButton').addEventListener('click', function () {
+                try {
+                    window.location.href = 'metamask.html';
+                } catch (error) {
+                    console.error("Error navigating to MetaMask URL:", error);
+                }
+            });
+
+            checkOrientation();
+
+            // Background animation
+            const canvas = document.getElementById('backgroundCanvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+
+            function resizeCanvas() {
+                try {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                } catch (error) {
+                    console.error("Error in resizeCanvas function:", error);
+                }
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+        })();
+    </script>
+    <script src="particleAnimation.js"></script>
+</body>
+</html>
